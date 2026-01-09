@@ -1,0 +1,39 @@
+!!ExportedWorkflow
+apiVersion: torq.io/v2alpha
+kind: Workflow
+id: 40829bc1-5671-4806-9984-6d4cb6568c36
+name: Dev2Prod - Test
+trigger:
+  onDemandTrigger:
+    parameterList:
+      parameters: []
+playbook:
+  steps:
+    - name: us-docker.pkg.dev/stackpulse/public/utils/output_utils/set-variable:2.3.0
+      id: set_variable
+      env:
+        DATA_TYPE: string
+        VALUE_STRING: hello world
+        VARIABLE_NAME: demo
+      uuid: 9b4cb327-db98-4f03-b709-6189df62bdfc
+      pretty_name: Set Variable
+      options:
+        executor:
+          name: utils_infrastructure_v_1_41_0
+          env: {}
+          sync: true
+          disable: false
+      manifestId: 7b868a61-a5f1-53a3-ad5a-7c115d591b2e
+      isPrivate: false
+      mock_output:
+        enabled: false
+      skip: false
+      retry: {}
+    - exit:
+        success: "true"
+        pretty_name: Exit
+        output: '{}'
+        uuid: 3c4ade57-a2d0-42b3-a9bc-2dd98e69eac3
+        use_schema: true
+  output_schema: '{}'
+root: true
