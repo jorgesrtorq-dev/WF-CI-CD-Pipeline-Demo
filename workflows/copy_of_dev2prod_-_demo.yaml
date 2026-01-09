@@ -91,6 +91,36 @@ playbook:
           }
       skip: false
       retry: {}
+    - name: us-docker.pkg.dev/stackpulse/public/slack/message/message:2.2.0
+      id: send_message_1
+      env:
+        MESSAGE_TEXT: '{{ $.print_a_message_to_stdout.output }}'
+        RECIPIENT: '{{ $.get_user_details_by_id.api_object.user.profile.email }}'
+      envFrom:
+        integrationRef: slack_jorgesr_test
+      uuid: 25a57e50-22d8-4e98-8dad-6c24cd77a843
+      pretty_name: Send Message 1
+      options:
+        executor:
+          name: slack_message_message_v_2_2_0
+          env: {}
+          sync: true
+          disable: false
+      manifestId: 95a7bd41-6272-5ebb-bf7d-55ba419dcf0d
+      isPrivate: false
+      mock_output:
+        enabled: true
+        payload: |-
+          {
+            "env": {
+              "MESSAGE_TEXT": "Hello, Torq is amazing!",
+              "RECIPIENT": "jorgesr@torq.io",
+              "TORQ_INTERNAL_EVENT_ID": "ebf871de-ebd1-414d-a99c-eaff236ee249"
+            },
+            "args": []
+          }
+      skip: false
+      retry: {}
     - exit:
         success: "true"
         pretty_name: Exit
