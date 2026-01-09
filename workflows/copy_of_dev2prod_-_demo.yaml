@@ -1,0 +1,101 @@
+!!ExportedWorkflow
+apiVersion: torq.io/v2alpha
+kind: Workflow
+id: bac56058-6c95-48ef-8b41-a7207b749337
+name: Copy of Dev2Prod - Demo
+trigger:
+  integrationTrigger:
+    integration:
+      name: slack_jorgesr_test
+      typeId: slack
+    conditions:
+      or:
+        and: []
+playbook:
+  steps:
+    - name: us-docker.pkg.dev/stackpulse/public/utils/output_utils/print:2.2.0
+      id: print_a_message_to_stdout
+      env:
+        __TQ_FILE_ENV_PARSER__FILE_OR_STRING: plain-text
+        FILE_OR_STRING: Hello, Torq is amazing!
+      uuid: 0795e189-a2c9-4962-ae2d-9be909d3438d
+      pretty_name: Print a message to stdout
+      options:
+        executor:
+          name: utils_infrastructure_v_1_41_0
+          env: {}
+          sync: true
+          disable: false
+      manifestId: e43d76f2-4382-5e23-a993-f15651735991
+      isPrivate: false
+      isPrivateUrl: true
+      mock_output:
+        enabled: false
+      skip: false
+      retry: {}
+    - name: us-docker.pkg.dev/stackpulse/public/slack/http/get-user-details-by-id:2.0.0
+      id: get_user_details_by_id
+      env:
+        USER_ID: '{{ $.event.user }}'
+      envFrom:
+        integrationRef: slack_jorgesr_test
+      uuid: 6fd77ba6-e810-4332-a753-e1e4d6306aba
+      pretty_name: Get User Details by ID
+      options:
+        executor:
+          name: http_request_v_4_13_0
+          env:
+            AUTHORIZATION: Bearer
+            HEADERS: '{}'
+            METHOD: GET
+            PARSE_HJSON: "true"
+            REQUIRED_VARIABLES: '["SLACK_API_KEY", "USER_ID"]'
+            TIMEOUT: "30"
+            TOKEN: '{{ .SLACK_API_KEY }}'
+            URL: https://slack.com/api/users.info?user={{ .USER_ID | urlEnc }}
+          sync: true
+          disable: false
+      manifestId: 97a8c2b5-75ea-5346-8feb-7d5eb1cdeea2
+      isPrivate: false
+      mock_output:
+        enabled: false
+      skip: false
+      retry: {}
+    - name: us-docker.pkg.dev/stackpulse/public/slack/message/message:2.2.0
+      id: send_message
+      env:
+        MESSAGE_TEXT: '{{ $.print_a_message_to_stdout.output }}'
+        RECIPIENT: '{{ $.get_user_details_by_id.api_object.user.profile.email }}'
+      envFrom:
+        integrationRef: slack_jorgesr_test
+      uuid: 63e3c1d5-ba35-4983-b34d-4b9de892a50c
+      pretty_name: Send Message
+      options:
+        executor:
+          name: slack_message_message_v_2_2_0
+          env: {}
+          sync: true
+          disable: false
+      manifestId: 95a7bd41-6272-5ebb-bf7d-55ba419dcf0d
+      isPrivate: false
+      mock_output:
+        enabled: true
+        payload: |-
+          {
+            "env": {
+              "MESSAGE_TEXT": "Hello, Torq is amazing!",
+              "RECIPIENT": "jorgesr@torq.io",
+              "TORQ_INTERNAL_EVENT_ID": "ebf871de-ebd1-414d-a99c-eaff236ee249"
+            },
+            "args": []
+          }
+      skip: false
+      retry: {}
+    - exit:
+        success: "true"
+        pretty_name: Exit
+        output: '{}'
+        uuid: 13a158e8-15ac-48fa-83a2-385d2e253b3d
+  output_schema: '{}'
+  section: Workflow CI/CD Pipeline
+root: true
