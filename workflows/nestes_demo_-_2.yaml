@@ -24,3 +24,41 @@ playbook:
           payload: '{}'
   output_schema: '{}'
 root: true
+---
+!!ExportedWorkflow
+apiVersion: torq.io/v2alpha
+kind: Workflow
+id: 8eed4268-af07-41cd-b830-c8ac686dbd1e
+name: Nested demo
+trigger:
+  onDemandTrigger:
+    parameterList:
+      parameters:
+        - name: demo
+          required: true
+          prettyName: demo
+          shortText:
+            defaultValue: demo
+playbook:
+  steps:
+    - name: us-docker.pkg.dev/stackpulse/public/utils/output_utils/print:2.2.0
+      id: print_a_message_to_stdout
+      env:
+        __TQ_FILE_ENV_PARSER__FILE_OR_STRING: plain-text
+        FILE_OR_STRING: demo
+      uuid: dec9c566-ffdf-4204-b9a3-e878e9359f48
+      pretty_name: Print a message to stdout
+      options:
+        executor:
+          name: utils_infrastructure_v_1_41_0
+          env: {}
+          sync: true
+          disable: false
+      manifestId: e43d76f2-4382-5e23-a993-f15651735991
+      isPrivate: false
+      isPrivateUrl: true
+      mock_output:
+        enabled: false
+      skip: false
+      retry: {}
+  output_schema: '{}'
