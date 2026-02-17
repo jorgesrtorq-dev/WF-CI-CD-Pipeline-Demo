@@ -1,0 +1,26 @@
+!!ExportedWorkflow
+apiVersion: torq.io/v2alpha
+kind: Workflow
+id: 32aefad1-5f06-44ba-8c66-d0b544615d1e
+name: nestes demo - 2
+trigger:
+  onDemandTrigger:
+    parameterList:
+      parameters: []
+playbook:
+  steps:
+    - trigger:
+        id: nested_demo_1
+        playbook_id: 8eed4268-af07-41cd-b830-c8ac686dbd1e
+        pretty_name: Nested demo 1
+        uuid: 32a970f6-dc64-4267-8752-e2f8bbc8e99f
+        input: |-
+          {
+            "demo": "1234"
+          }
+        playbook_name: Nested demo
+        mock_output:
+          enabled: false
+          payload: '{}'
+  output_schema: '{}'
+root: true
