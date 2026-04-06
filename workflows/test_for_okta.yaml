@@ -1,0 +1,361 @@
+!!ExportedWorkflow
+apiVersion: torq.io/v2alpha
+kind: Workflow
+id: 07d51fd8-d48c-4b4d-8989-72029220c798
+name: test for okta
+trigger:
+  onDemandTrigger:
+    parameterList:
+      parameters: []
+playbook:
+  steps:
+    - name: us-docker.pkg.dev/stackpulse/public/scripting/python:3.8.0
+      id: run_a_python_script
+      env:
+        PYTHON_CODE: |
+          from cryptography.hazmat.primitives.asymmetric import rsa
+          from cryptography.hazmat.primitives import serialization
+          from cryptography.hazmat.backends import default_backend
+          import base64
+          import json
+          import uuid
+
+          # Generate RSA-2048 private key
+          private_key = rsa.generate_private_key(
+              public_exponent=65537,
+              key_size=2048,
+              backend=default_backend()
+          )
+
+          # Export private key as PEM — goes to Torq Secrets
+          private_pem = private_key.private_bytes(
+              encoding=serialization.Encoding.PEM,
+              format=serialization.PrivateFormat.PKCS8,
+              encryption_algorithm=serialization.NoEncryption()
+          ).decode("utf-8")
+
+          # Build public key JWK — goes to Okta Admin Console
+          pub_numbers = private_key.public_key().public_numbers()
+
+          def to_base64url(n):
+              length = (n.bit_length() + 7) // 8
+              return base64.urlsafe_b64encode(
+                  n.to_bytes(length, byteorder="big")
+              ).rstrip(b"=").decode("utf-8")
+
+          kid = f"torq-prod-{str(uuid.uuid4())[:8]}"  # e.g. torq-prod-a1b2c3d4
+
+          public_jwk = {
+              "kty": "RSA",
+              "use": "sig",
+              "alg": "RS256",
+              "kid": kid,
+              "n": to_base64url(pub_numbers.n),
+              "e": to_base64url(pub_numbers.e)
+          }
+
+          result = {
+              "private_key_pem": private_pem,
+              "public_jwk": json.dumps(public_jwk, indent=2),
+              "kid": kid
+          }
+
+          print(json.dumps(result, indent=2))
+      uuid: c139417b-92f5-4a9e-9a3b-df7587889a84
+      pretty_name: Run a Python script
+      options:
+        output_to_file: true
+      icon: https://storage.googleapis.com/stackpulse-public/vendors/python.svg
+      manifestId: a1c8a0a5-879b-5e79-96bd-159a9d5bbfa8
+      isPrivate: false
+      mock_output:
+        enabled: false
+      skip: false
+      retry: {}
+    - name: custom-step:1.0.0
+      id: get_commit_demo
+      env:
+        API_URL_DEMO: https://api.github.com
+        COMMIT_REFERENCE: 6dcb09b5b57875f334f61aebed695e2e4193db5e
+        ORGANIZATION_NAME_DOUBLE: my-organization
+        REPOSITORY_NAME: my_repo
+      envFrom:
+        integrationRef: ""
+      uuid: a5853e9b-e367-415d-9b38-6e980425db96
+      pretty_name: Get Commit - demo
+      options:
+        executor:
+          name: http_request_v_4_30_0
+          env: {}
+          sync: true
+          disable: false
+      documentationUrl: https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#get-a-commit
+      manifestId: 256873fa-0de4-4b94-8f44-4df8f49f645c
+      isPrivate: true
+      isPrivateUrl: true
+      mock_output:
+        enabled: false
+      skip: false
+      retry: {}
+    - name: custom-step:2.0.0
+      id: get_commit_demo_v2
+      env:
+        API_URL_DEMO: https://api.github.com
+        COMMIT_REFERENCE: ""
+        ORGANIZATION_NAME_DOUBLE: ""
+        REPOSITORY_NAME: ""
+      envFrom:
+        integrationRef: ""
+      uuid: d68daa95-4637-4b2f-9d37-46c2e520cc05
+      pretty_name: Get Commit - demo v2
+      options:
+        executor:
+          name: http_request_v_4_35_0
+          env: {}
+          sync: true
+          disable: false
+      documentationUrl: https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#get-a-commit
+      manifestId: 8c9af6c5-e96f-4be5-847b-d0e8aff10c1c
+      isPrivate: true
+      isPrivateUrl: true
+      mock_output:
+        enabled: false
+      skip: false
+      retry: {}
+  output_schema: '{}'
+root: true
+---
+!!ExportedPrivateStep
+basestepid: ""
+vendor:
+  id: ""
+  icon: https://cdn.torq.io/vendors/github.svg
+  vendor: github
+  name: GitHub
+  is_private: false
+  use_cases:
+    - Application Security Operations
+  categories:
+    - CI/CD
+    - Code Repository
+    - Featured
+name: Get Commit - demo v2
+description: Returns the contents of a single commit reference. You must have read access for the repository to use this endpoint.
+documentationurl: https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#get-a-commit
+runtime:
+  image: us-docker.pkg.dev/stackpulse/public/http/request
+  imageVersion: 4.33.0
+  envs:
+    - key: AUTHORIZATION
+      value: Bearer
+    - key: METHOD
+      value: GET
+    - key: BODY
+      value: ""
+    - key: REQUIRED_VARIABLES
+      value: '["API_URL_DEMO","REPOSITORY_NAME","COMMIT_REFERENCE","TOKEN","ORGANIZATION_NAME_DOUBLE"]'
+    - key: TOKEN
+      value: '{{ .TOKEN }}'
+    - key: URL
+      value: '{{ .API_URL_DEMO }}/repos/{{ .ORGANIZATION_NAME_DOUBLE }}/{{ .REPOSITORY_NAME }}/commits/{{ .COMMIT_REFERENCE }}'
+    - key: CONTENT_TYPE
+      value: application/json; charset=utf-8
+    - key: PARSE_HJSON
+      value: "true"
+    - key: HEADERS
+      value: |-
+        {
+          "Accept": "application/vnd.github+json"
+        }
+    - key: FAIL_ON_NON_SUCCESS_RESPONSE
+      value: "true"
+    - key: GO_TEMPLATE_BODY_PARSING
+      value: "true"
+    - key: RESPONSE_API_OBJECT_ONLY
+      value: "true"
+envs:
+  - name: API_URL_DEMO
+    type: string
+    required: true
+    default: https://api.github.com
+    example: https://api.github.com
+    options: {}
+  - name: REPOSITORY_NAME
+    description: The name of the repository where the updated file resides.
+    type: string
+    required: true
+    example: my_repo
+    options: {}
+  - name: COMMIT_REFERENCE
+    description: Can be a commit SHA, branch name (heads/BRANCH_NAME), or tag name (tags/TAG_NAME)
+    type: string
+    required: true
+    example: 6dcb09b5b57875f334f61aebed695e2e4193db5e
+    options: {}
+  - name: TIMEOUT
+    description: Timeout for request in seconds. By default, timeout is 30 seconds.
+    type: int
+    example: "30"
+    options: {}
+  - name: SKIP_SSL_VERIFICATION
+    description: If set, request will not verify SSL certificates. Where applicable, it might be better to provide a self-signed certificate using the `CUSTOM_CERTIFICATES_PEM` parameter.
+    type: bool
+    options: {}
+  - name: HTTP_PROXY
+    description: Your HTTP proxy URL. If you need to use a SOCKS proxy, set the `HTTP_PROXY` environment variable to `socks5://...`.
+    type: string
+    options: {}
+  - name: HTTPS_PROXY
+    description: Your HTTPS proxy URL. If you need to use a SOCKS proxy, set the `HTTPS_PROXY` environment variable to `socks5://...`.
+    type: string
+    options: {}
+  - name: CLIENT_PRIVATE_KEY_PEM
+    description: The contents of a .pem file containing the client certificate's private key. Useful when a specific client certificate is needed.
+    type: string
+    example: |-
+      -----BEGIN EC PRIVATE KEY-----
+      MHcCAQEEIIrYSSNQFaA2Hwf1duRSxKtLYX5CB04fSeQ6tF1aY/PuoAoGCCqGSM49
+      AwEHoUQDQgAEPR3tU2Fta9ktY+6P9G0cWO+0kETA6SFs38GecTyudlHz6xvCdz8q
+      EKTcWGekdmdDPsHloRNtsiCa697B2O9IFA==
+      -----END EC PRIVATE KEY-----
+    options: {}
+  - name: CLIENT_CERTIFICATE_PEM
+    description: The contents of a .pem file containing a client certificate. Useful when a specific client certificate is needed.
+    type: string
+    example: "-----BEGIN CERTIFICATE----- \nMIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn+dNuaTAKBggqhkjOPQQDAjASMRAw\nDgYDVQQKEwdBY21lIENvMB4XDTE3MTAyMDE5NDMwNloXDTE4MTAyMDE5NDMwNlow\nEjEQMA4GA1UEChMHQWNtZSBDbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABD0d\n7VNhbWvZLWPuj/RtHFjvtJBEwOkhbN/BnnE8rnZR8+sbwnc/KhCk3FhnpHZnQz7B\n5aETbbIgmuvewdjvSBSjYzBhMA4GA1UdDwEB/wQEAwICpDATBgNVHSUEDDAKBggr\nBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MCkGA1UdEQQiMCCCDmxvY2FsaG9zdDo1\nNDUzgg4xMjcuMC4wLjE6NTQ1MzAKBggqhkjOPQQDAgNIADBFAiEA2zpJEPQyz6/l\nWf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc\n6MF9+Yw1Yy0t\n-----END CERTIFICATE-----"
+    options: {}
+  - name: CUSTOM_CERTIFICATES_PEM
+    description: The contents of a .pem file containing a self-signed certificate or certificate chain. Useful when connecting to local servers.
+    type: string
+    example: |-
+      -----BEGIN CERTIFICATE-----
+      MIIEczCCA1ugAwIBAgIBADANBgkqhkiG9w0BAQQFAD..AkGA1UEBhMCR0Ix
+      It8una2gY4l2O//on88r5IWJlm1L0oA8e4fR2yrBHX..adsGeFKkyNrwGi/
+      7vQMfXdGsRrXNGRGnX+vWDZ3/zWI0joDtCkNnqEpVn..HoX
+      -----END CERTIFICATE-----
+    options: {}
+  - name: RESPONSE_API_OBJECT_ONLY
+    description: If set to false, response headers will be included in the response.
+    type: bool
+    default: "true"
+    example: "true"
+    options: {}
+  - name: TOKEN
+    type: string
+    required: true
+    options: {}
+    fromIntegration: github_token
+  - name: ORGANIZATION_NAME_DOUBLE
+    type: string
+    required: true
+    example: my-organization
+    options: {}
+outputs:
+  - name: api_object
+    type: json
+    example: |-
+      {
+        "url": "https://api.github.com/repos/octocat/Hello-World/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+        "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5e",
+        "node_id": "MDY6Q29tbWl0NmRjYjA5YjViNTc4NzVmMzM0ZjYxYWViZWQ2OTVlMmU0MTkzZGI1ZQ==",
+        "html_url": "https://github.com/octocat/Hello-World/commit/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+        "comments_url": "https://api.github.com/repos/octocat/Hello-World/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e/comments",
+        "commit": {
+          "url": "https://api.github.com/repos/octocat/Hello-World/git/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+          "author": {
+            "name": "Monalisa Octocat",
+            "email": "mona@github.com",
+            "date": "2011-04-14T16:00:49Z"
+          },
+          "committer": {
+            "name": "Monalisa Octocat",
+            "email": "mona@github.com",
+            "date": "2011-04-14T16:00:49Z"
+          },
+          "message": "Fix all the bugs",
+          "tree": {
+            "url": "https://api.github.com/repos/octocat/Hello-World/tree/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+            "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5e"
+          },
+          "comment_count": 0,
+          "verification": {
+            "verified": false,
+            "reason": "unsigned",
+            "signature": null,
+            "payload": null,
+            "verified_at": null
+          }
+        },
+        "author": {
+          "login": "octocat",
+          "id": 1,
+          "node_id": "MDQ6VXNlcjE=",
+          "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/octocat",
+          "html_url": "https://github.com/octocat",
+          "followers_url": "https://api.github.com/users/octocat/followers",
+          "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+          "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+          "organizations_url": "https://api.github.com/users/octocat/orgs",
+          "repos_url": "https://api.github.com/users/octocat/repos",
+          "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/octocat/received_events",
+          "type": "User",
+          "site_admin": false
+        },
+        "committer": {
+          "login": "octocat",
+          "id": 1,
+          "node_id": "MDQ6VXNlcjE=",
+          "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/octocat",
+          "html_url": "https://github.com/octocat",
+          "followers_url": "https://api.github.com/users/octocat/followers",
+          "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+          "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+          "organizations_url": "https://api.github.com/users/octocat/orgs",
+          "repos_url": "https://api.github.com/users/octocat/repos",
+          "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/octocat/received_events",
+          "type": "User",
+          "site_admin": false
+        },
+        "parents": [
+          {
+            "url": "https://api.github.com/repos/octocat/Hello-World/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+            "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5e"
+          }
+        ],
+        "stats": {
+          "additions": 104,
+          "deletions": 4,
+          "total": 108
+        },
+        "files": [
+          {
+            "filename": "file1.txt",
+            "additions": 10,
+            "deletions": 2,
+            "changes": 12,
+            "status": "modified",
+            "raw_url": "https://github.com/octocat/Hello-World/raw/7ca483543807a51b6079e54ac4cc392bc29ae284/file1.txt",
+            "blob_url": "https://github.com/octocat/Hello-World/blob/7ca483543807a51b6079e54ac4cc392bc29ae284/file1.txt",
+            "patch": "@@ -29,7 +29,7 @@\n....."
+          }
+        ]
+      }
+integrations:
+  - github_token
+basetype: 1
+options:
+  executor:
+    name: http_request_v_4_35_0
+    sync: true
+  outputToFile: true
+exportedstepid: 8c9af6c5-e96f-4be5-847b-d0e8aff10c1c
