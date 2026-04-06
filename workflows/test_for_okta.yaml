@@ -1,0 +1,101 @@
+!!ExportedWorkflow
+apiVersion: torq.io/v2alpha
+kind: Workflow
+id: 07d51fd8-d48c-4b4d-8989-72029220c798
+name: test for okta
+trigger:
+  onDemandTrigger:
+    parameterList:
+      parameters: []
+playbook:
+  steps:
+    - name: us-docker.pkg.dev/stackpulse/public/scripting/python:3.8.0
+      id: run_a_python_script
+      env:
+        PYTHON_CODE: |
+          from cryptography.hazmat.primitives.asymmetric import rsa
+          from cryptography.hazmat.primitives import serialization
+          from cryptography.hazmat.backends import default_backend
+          import base64
+          import json
+          import uuid
+
+          # Generate RSA-2048 private key
+          private_key = rsa.generate_private_key(
+              public_exponent=65537,
+              key_size=2048,
+              backend=default_backend()
+          )
+
+          # Export private key as PEM — goes to Torq Secrets
+          private_pem = private_key.private_bytes(
+              encoding=serialization.Encoding.PEM,
+              format=serialization.PrivateFormat.PKCS8,
+              encryption_algorithm=serialization.NoEncryption()
+          ).decode("utf-8")
+
+          # Build public key JWK — goes to Okta Admin Console
+          pub_numbers = private_key.public_key().public_numbers()
+
+          def to_base64url(n):
+              length = (n.bit_length() + 7) // 8
+              return base64.urlsafe_b64encode(
+                  n.to_bytes(length, byteorder="big")
+              ).rstrip(b"=").decode("utf-8")
+
+          kid = f"torq-prod-{str(uuid.uuid4())[:8]}"  # e.g. torq-prod-a1b2c3d4
+
+          public_jwk = {
+              "kty": "RSA",
+              "use": "sig",
+              "alg": "RS256",
+              "kid": kid,
+              "n": to_base64url(pub_numbers.n),
+              "e": to_base64url(pub_numbers.e)
+          }
+
+          result = {
+              "private_key_pem": private_pem,
+              "public_jwk": json.dumps(public_jwk, indent=2),
+              "kid": kid
+          }
+
+          print(json.dumps(result, indent=2))
+      uuid: c139417b-92f5-4a9e-9a3b-df7587889a84
+      pretty_name: Run a Python script
+      options:
+        output_to_file: true
+      icon: https://storage.googleapis.com/stackpulse-public/vendors/python.svg
+      manifestId: a1c8a0a5-879b-5e79-96bd-159a9d5bbfa8
+      isPrivate: false
+      mock_output:
+        enabled: false
+      skip: false
+      retry: {}
+    - name: custom-step:1.0.0
+      id: get_commit_demo
+      env:
+        API_URL_DEMO: https://api.github.com
+        COMMIT_REFERENCE: 6dcb09b5b57875f334f61aebed695e2e4193db5e
+        ORGANIZATION_NAME_DOUBLE: my-organization
+        REPOSITORY_NAME: my_repo
+      envFrom:
+        integrationRef: ""
+      uuid: a5853e9b-e367-415d-9b38-6e980425db96
+      pretty_name: Get Commit - demo
+      options:
+        executor:
+          name: http_request_v_4_30_0
+          env: {}
+          sync: true
+          disable: false
+      documentationUrl: https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#get-a-commit
+      manifestId: 256873fa-0de4-4b94-8f44-4df8f49f645c
+      isPrivate: true
+      isPrivateUrl: true
+      mock_output:
+        enabled: false
+      skip: false
+      retry: {}
+  output_schema: '{}'
+root: true
