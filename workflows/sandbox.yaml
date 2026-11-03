@@ -1,0 +1,131 @@
+!!ExportedWorkflow
+apiVersion: torq.io/v2alpha
+kind: Workflow
+id: d7985ec0-ee4a-4843-b7e3-e65344219d58
+name: sandbox
+trigger:
+  onDemandTrigger:
+    parameterList:
+      parameters: []
+playbook:
+  steps:
+    - if:
+        conditions:
+          or:
+            - and:
+                - lvalue: '{{ $.metadata.account_name }}'
+                  operator: CONTAINS
+                  rvalue: Dev
+        then:
+          - name: us-docker.pkg.dev/stackpulse/public/utils/parameters_utils/workflow_parameters:2.6.0
+            id: dev_workflow_parameters
+            uuid: 2c067a9f-6b14-4131-81c5-e4d96c0159ee
+            pretty_name: Dev Workflow Parameters
+            options:
+              executor:
+                name: utils_infrastructure_v_1_72_0
+                env: {}
+                sync: true
+                disable: false
+            manifestId: f27dc9ab-6a61-8e88-aafa-f47d75d0f23f
+            isPrivate: false
+            mock_output:
+              enabled: false
+            skip: false
+            retry: {}
+        else:
+          - name: us-docker.pkg.dev/stackpulse/public/utils/parameters_utils/workflow_parameters:2.6.0
+            id: prod_workflow_parameters
+            uuid: 5430bc92-9023-44ab-95d9-6a403a1748ad
+            pretty_name: Prod Workflow Parameters
+            options:
+              executor:
+                name: utils_infrastructure_v_1_72_0
+                env: {}
+                sync: true
+                disable: false
+            manifestId: f27dc9ab-6a61-8e88-aafa-f47d75d0f23f
+            isPrivate: false
+            mock_output:
+              enabled: false
+            skip: false
+            retry: {}
+        uuid: 29b8c01f-4fe4-4dfa-adb2-8aca851df365
+        pretty_name: If
+    - if:
+        conditions:
+          or:
+            - and:
+                - lvalue: '{{ $.metadata.account_name }}'
+                  operator: EQUALS
+                  rvalue: jorgeSR-prod
+        then:
+          - name: us-docker.pkg.dev/stackpulse/public/utils/output_utils/set-variable:2.10.1
+            id: select_runner
+            env:
+              DATA_TYPE: string
+              VALUE_STRING: prod-runner
+              VARIABLE_NAME: runner_name
+            uuid: 54c440e4-3f36-4a1c-a09a-7f725f7db1c8
+            pretty_name: Select runner
+            options:
+              executor:
+                name: utils_infrastructure_v_1_72_0
+                env: {}
+                sync: true
+                disable: false
+            manifestId: 26df83b9-288d-8de6-8241-fd12649cfe02
+            isPrivate: false
+            mock_output:
+              enabled: false
+            skip: false
+            retry: {}
+        else:
+          - name: us-docker.pkg.dev/stackpulse/public/utils/output_utils/set-variable:2.10.1
+            id: select_runner
+            env:
+              DATA_TYPE: string
+              VALUE_STRING: dev-runner
+              VARIABLE_NAME: runner_name
+            uuid: ea8a22b6-1986-4282-8132-b6b2c79d4d0e
+            pretty_name: Select runner
+            options:
+              executor:
+                name: utils_infrastructure_v_1_72_0
+                env: {}
+                sync: true
+                disable: false
+            manifestId: 26df83b9-288d-8de6-8241-fd12649cfe02
+            isPrivate: false
+            mock_output:
+              enabled: false
+            skip: false
+            retry: {}
+        uuid: 2fcdeca0-4d86-43e3-b26c-60689d820d5b
+        pretty_name: If
+    - name: us-docker.pkg.dev/stackpulse/public/http/request:4.42.1
+      id: send_an_http_request
+      env:
+        AUTHORIZATION: None
+        HEADERS: ""
+        METHOD: GET
+        URL: https://postman-echo.com/get?foo1=bar1&foo2=bar2
+      runner: '{{ $.select_runner.runner_name }}'
+      uuid: c8901dd0-679e-4ed4-9a9f-46e681d1f095
+      pretty_name: Send an HTTP request
+      options:
+        executor:
+          name: http_request_v_4_53_0
+          env: {}
+          sync: true
+          disable: false
+      manifestId: 085d3cb5-78a8-8262-a432-d113dd6a1ebe
+      isPrivate: false
+      isPrivateUrl: true
+      mock_output:
+        enabled: false
+      skip: false
+      retry: {}
+  output_schema: '{}'
+  section: Lab
+root: true
